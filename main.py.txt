@@ -1,4 +1,4 @@
-﻿import os
+import os
 import hashlib
 import requests
 import feedparser
@@ -6,8 +6,9 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
 # ========= تنظیمات =========
-BOT_TOKEN = os.environ.get("BOT_TOKEN")      # توکن رباتت
-CHAT_ID = os.environ.get("CHAT_ID")          # Chat ID شما 119580634
+# برای تست موقت، توکن و Chat ID را مستقیم اینجا می‌گذاریم
+BOT_TOKEN = "8220464154:AAEtuHy4wRaWCJlaZMU5Ts2B-yOzmPrAcEI"
+CHAT_ID = "119580634"                           # Chat ID تو
 
 BASE_DIR = "./data"
 os.makedirs(BASE_DIR, exist_ok=True)
@@ -26,7 +27,8 @@ RSS_SOURCES = {
 # ========= توابع =========
 
 def send_telegram(text):
-    rtl_text = "\u200F" + text   # راست‌چین کردن پیام
+    # اضافه کردن کاراکتر راست‌چین برای فارسی
+    rtl_text = "\u200F" + text
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
@@ -49,6 +51,10 @@ def make_hash(text):
 # ========= بخش اصلی =========
 
 def run():
+    # پیام تست مستقیم
+    send_telegram("✅ ربات با موفقیت اجرا شد و تست پیام رسید!")
+
+    # این بخش RSS فعلی
     now = datetime.now(timezone.utc)
     seen = load_seen()
     new_hashes = set()
