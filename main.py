@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 # ========= تنظیمات =========
 # برای تست موقت، توکن و Chat ID را مستقیم اینجا می‌گذاریم
-BOT_TOKEN ="8220464154:AAEtuHy4wRaWCJlaZMU5Ts2B-yOzmPrAcEI"
+BOT_TOKEN ="8220464154:AAGM0pohheJTNbQi8X9p7tSIYUFWvzWDw4E"
 CHAT_ID ="119580634"                           # Chat ID تو
 
 BASE_DIR = "./data"
@@ -85,4 +85,5 @@ def run():
 
 if __name__ == "__main__":
     run()
+
 
