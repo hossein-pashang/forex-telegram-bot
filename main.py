@@ -2,18 +2,20 @@ import os
 import hashlib
 import requests
 import feedparser
-from bs4 import BeautifulSoup
+import schedule
+import time
 from datetime import datetime, timezone
 
 # ========= تنظیمات =========
-# برای تست موقت، توکن و Chat ID را مستقیم اینجا می‌گذاریم
-BOT_TOKEN ="8220464154:AAGM0pohheJTNbQi8X9p7tSIYUFWvzWDw4E"
-CHAT_ID ="119580634"                           # Chat ID تو
+
+BOT_TOKEN = "8220464154:AAGM0pohheJTNbQi8X9p7tSIYUFWvzWDw4E"
+CHAT_ID = "119580634"
 
 BASE_DIR = "./data"
 os.makedirs(BASE_DIR, exist_ok=True)
 
 SEEN_FILE = os.path.join(BASE_DIR, "seen_hashes.txt")
+
 if not os.path.exists(SEEN_FILE):
     open(SEEN_FILE, "w").close()
 
@@ -27,63 +29,94 @@ RSS_SOURCES = {
 # ========= توابع =========
 
 def send_telegram(text):
-    # اضافه کردن کاراکتر راست‌چین برای فارسی
-    rtl_text = "\u200F" + text
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": rtl_text[:4000]
-    }
-    requests.post(url, data=payload)
+    try:
+        rtl_text = "\u200F" + text
+
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+        payload = {
+            "chat_id": CHAT_ID,
+            "text": rtl_text[:4000]
+        }
+
+        requests.post(url, data=payload, timeout=30)
+
+    except Exception as e:
+        print("Telegram Error:", e)
 
 def load_seen():
-    with open(SEEN_FILE, "r") as f:
+    with open(SEEN_FILE, "r", encoding="utf-8") as f:
         return set(x.strip() for x in f.readlines())
 
 def save_seen(new_hashes):
-    with open(SEEN_FILE, "a") as f:
+    with open(SEEN_FILE, "a", encoding="utf-8") as f:
         for h in new_hashes:
             f.write(h + "\n")
 
 def make_hash(text):
-    return hashlib.sha256(text.encode()).hexdigest()
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-# ========= بخش اصلی =========
+# ========= RSS CHECK =========
 
-def run():
-    # پیام تست مستقیم
-    send_telegram("✅ ربات با موفقیت اجرا شد و تست پیام رسید!")
+def check_news():
 
-    # این بخش RSS فعلی
     now = datetime.now(timezone.utc)
+
+    print("Checking RSS:", now)
+
     seen = load_seen()
     new_hashes = set()
-    messages = []
+
+    total_new = 0
 
     for source, url in RSS_SOURCES.items():
-        feed = feedparser.parse(url)
 
-        for entry in feed.entries:
-            title = entry.get("title", "").strip()
-            link = entry.get("link", "").strip()
+        try:
 
-            content_key = f"{source}|{title}|{link}"
-            h = make_hash(content_key)
+            feed = feedparser.parse(url)
 
-            if h in seen:
-                continue
+            for entry in feed.entries:
 
-            new_hashes.add(h)
+                title = entry.get("title", "").strip()
+                link = entry.get("link", "").strip()
 
-            msg = f"📢 {source}\n📰 عنوان: {title}\n🔗 لینک: {link}"
-            messages.append(msg)
+                content_key = f"{source}|{title}|{link}"
 
-    if messages:
-        for m in messages:
-            send_telegram(m)
+                h = make_hash(content_key)
+
+                if h in seen:
+                    continue
+
+                new_hashes.add(h)
+
+                msg = (
+                    f"📢 {source}\n\n"
+                    f"📰 {title}\n\n"
+                    f"🔗 {link}"
+                )
+
+                send_telegram(msg)
+
+                total_new += 1
+
+                time.sleep(1)
+
+        except Exception as e:
+            print(f"RSS Error ({source}):", e)
+
+    if new_hashes:
         save_seen(new_hashes)
 
-if __name__ == "__main__":
-    run()
+    print(f"New articles sent: {total_new}")
 
+# ========= START =========
 
+send_telegram("✅ Forex News Bot Started")
+
+check_news()
+
+schedule.every(10).minutes.do(check_news)
+
+while True:
+    schedule.run_pending()
+    time.sleep(5)
